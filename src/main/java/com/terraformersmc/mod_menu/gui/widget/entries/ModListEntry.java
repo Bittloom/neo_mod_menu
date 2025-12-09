@@ -51,46 +51,26 @@ public class ModListEntry extends ObjectSelectionList.Entry<ModListEntry> {
         x += getXOffset();
         rowWidth -= getXOffset();
         
-        // --- MODIFIED: Removed iconSize calculation as it is no longer needed for spacing ---
-        // int iconSize = ModMenu.getConfig().COMPACT_LIST.get() ? COMPACT_ICON_SIZE : FULL_ICON_SIZE;
-        
+        // --- FIX: Reset Color State (Crucial for preventing text blackouts) ---
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+
         String modId = mod.getId();
         
-        // --- MODIFIED: Commented out Icon Rendering ---
+        // --- Icon Rendering (Commented Out) ---
         /*
+        int iconSize = ModMenu.getConfig().COMPACT_LIST.get() ? COMPACT_ICON_SIZE : FULL_ICON_SIZE;
         if ("java".equals(modId)) {
             DrawingUtil.drawRandomVersionBackground(mod, guiGraphics, x, y, iconSize, iconSize);
         }
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.enableBlend();
-
-        if (this.getIconTexture().getB().height == this.getIconTexture().getB().width) {
-            guiGraphics.blit(
-                    this.getIconTexture().getA(),
-                    x, y, 0.0f, 0.0f,
-                    iconSize, iconSize,
-                    iconSize, iconSize);
-        } else if (this.getSquareIconTexture().getB().height == this.getSquareIconTexture().getB().width) {
-            guiGraphics.blit(
-                    this.getSquareIconTexture().getA(),
-                    x, y, 0.0f, 0.0f,
-                    iconSize, iconSize,
-                    iconSize, iconSize);
-        } else {
-            guiGraphics.blit(this.getSquareIconTexture().getA(),
-                    (int) (x + (iconSize - this.getSquareIconTexture().getB().width) / 2f),
-                    (int) (y + (iconSize - this.getSquareIconTexture().getB().height) / 2f),
-                    0.0f, 0.0f,
-                    this.getSquareIconTexture().getB().width, this.getSquareIconTexture().getB().height,
-                    this.getSquareIconTexture().getB().width, this.getSquareIconTexture().getB().height);
-        }
+        // ... (Icon drawing logic) ...
         RenderSystem.disableBlend();
         */
 
         Component name = Component.literal(mod.getTranslatedName());
         FormattedText trimmedName = name;
         
-        // --- MODIFIED: Increased text width area (removed iconSize subtraction) ---
+        // Text width calculation (No icon offset)
         int maxNameWidth = rowWidth - 6; 
         
         Font font = this.client.font;
@@ -99,44 +79,26 @@ public class ModListEntry extends ObjectSelectionList.Entry<ModListEntry> {
             trimmedName = FormattedText.composite(font.substrByWidth(name, maxNameWidth - font.width(ellipsis)), ellipsis);
         }
         
-        // --- MODIFIED: Shifted Text X position to (x + 6) ---
+        // Draw Mod Name
         guiGraphics.drawString(font, Language.getInstance().getVisualOrder(trimmedName), x + 6, y + 1, 0xFFFFFF, false);
         
         var updateBadgeXOffset = 0;
         if (!ModMenu.getConfig().HIDE_BADGES.get()) {
-            // --- MODIFIED: Shifted Badge X position ---
             new ModBadgeRenderer(x + 6 + font.width(name) + 2 + updateBadgeXOffset, y, x + rowWidth, mod, list.getParent()).draw(guiGraphics);
         }
         
+        // Draw Description / Version
         if (!ModMenu.getConfig().COMPACT_LIST.get()) {
             String summary = mod.getSummary();
-            // --- MODIFIED: Shifted Description X position and increased Width ---
             DrawingUtil.drawWrappedString(guiGraphics, summary, (x + 6), (y + client.font.lineHeight + 2), rowWidth - 6, 2, 0x808080);
         } else {
-            // --- MODIFIED: Shifted Version X position and increased Width ---
             DrawingUtil.drawWrappedString(guiGraphics, mod.getPrefixedVersion(), (x + 6), (y + client.font.lineHeight + 2), rowWidth - 6, 2, 0x808080);
         }
 
-        // --- MODIFIED: Removed Quick Configure Gear Overlay (Since icon is gone) ---
+        // --- Gear Overlay (Commented Out) ---
         /*
-        if (!(this instanceof ParentEntry) && !(this instanceof ChildParentEntry) && ModMenu.getConfig().QUICK_CONFIGURE.get() &&
-                (this.list.getParent().getModHasConfigScreen(mod.getContainer())
-                        || this.list.getParent().modScreenErrors.containsKey(modId))) {
-            final int textureSize = ModMenu.getConfig().COMPACT_LIST.get() ? (int) (256 / (FULL_ICON_SIZE / (double) COMPACT_ICON_SIZE)) : 256;
-            if (this.client.options.touchscreen().get() || hovered) {
-                guiGraphics.fill(x, y, x + iconSize, y + iconSize, -1601138544);
-                boolean hoveringIcon = mouseX - x < iconSize;
-                int v = hoveringIcon ? iconSize : 0;
-                if (this.list.getParent().modScreenErrors.containsKey(modId)) {
-                    guiGraphics.blit(ERROR_ICON, x, y, 96.0F, (float) v, iconSize, iconSize, textureSize, textureSize);
-                    if (hoveringIcon) {
-                        Throwable e = this.list.getParent().modScreenErrors.get(modId);
-                        this.list.getParent().setTooltipForNextRenderPass(this.client.font.split(Component.translatable("mod_menu.configure.error", modId, modId).copy().append("\n\n").append(e.toString()).withStyle(ChatFormatting.RED), 175));
-                    }
-                } else {
-                    guiGraphics.blit(MOD_CONFIGURATION_ICON, x, y, 0.0F, (float) v, iconSize, iconSize, textureSize, textureSize);
-                }
-            }
+        if (!(this instanceof ParentEntry) && !(this instanceof ChildParentEntry) ... ) {
+             // ...
         }
         */
     }
@@ -144,13 +106,9 @@ public class ModListEntry extends ObjectSelectionList.Entry<ModListEntry> {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int delta) {
         list.select(this);
-        
-        // --- MODIFIED: Removed click-on-icon shortcut, kept double-click shortcut ---
         if (ModMenu.getConfig().QUICK_CONFIGURE.get() &&
                 this.list.getParent().getModHasConfigScreen(this.mod.getContainer())) {
-            
-            // Removed specific icon area check since icon is gone.
-            // Only keeping the double-click check.
+            // Keep only double-click shortcut
             if (Util.getMillis() - this.sinceLastClick < 250) {
                 this.openConfig();
             }
